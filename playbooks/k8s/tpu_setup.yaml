@@ -1,0 +1,60 @@
+# https://github.com/NVIDIA/k8s-device-plugin
+# https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+- name: "gpu server setup - coral driver"
+  hosts: 'k8s_gpu'
+  become: true
+  tasks:
+    - name: "Comment out main repo"
+      replace:
+        path: /etc/apt/sources.list
+        regexp: '^deb http://deb.debian.org/debian/ bookworm '
+        replace: '# deb http://deb.debian.org/debian/ bookworm '
+    - name: "Comment out security repo"
+      replace:
+        path: /etc/apt/sources.list
+        regexp: '^deb http://security.debian.org/debian-security'
+        replace: '# deb http://security.debian.org/debian-security'
+    - name: "Comment out updates repo"
+      replace:
+        path: /etc/apt/sources.list
+        regexp: '^deb http://deb.debian.org/debian/ bookworm-updates'
+        replace: '# deb http://deb.debian.org/debian/ bookworm-updates'
+    - name: enable repo bookworm
+      apt_repository:
+        repo: deb http://deb.debian.org/debian/ bookworm main contrib non-free non-free-firmware
+        state: present
+    - name: enable repo bookworm-security
+      apt_repository:
+        repo: deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+        state: present
+    - name: enable repo bookworm-updates
+      apt_repository:
+        repo: deb http://deb.debian.org/debian/ bookworm-updates main contrib non-free non-free-firmware
+        state: present
+    - name: add coral repo key
+      tags:
+        - coral
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+        keyring: /usr/share/keyrings/coral.gpg
+    - name: add coral repo
+      tags:
+        - coral
+      apt_repository:
+        repo: >
+          deb [signed-by=/usr/share/keyrings/coral.gpg]
+          https://packages.cloud.google.com/apt coral-edgetpu-stable main
+        state: present
+        filename: coral
+      register: coral_repo
+      when: ansible_facts['distribution'] == 'Debian'
+    - name: install coral
+      tags:
+        - coral
+      ansible.builtin.apt:
+        name:
+          - gasket-dkms
+          - libedgetpu1-std
+        state: present
+        install_recommends: false

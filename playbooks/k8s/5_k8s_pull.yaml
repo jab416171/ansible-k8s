@@ -1,0 +1,8 @@
+- name: "fetch container images"
+  hosts: 'k8s_control'
+  become: true
+  tasks:
+    - name: pull images
+      tags:
+        - kubernetes
+      ansible.builtin.command: kubeadm config images pull

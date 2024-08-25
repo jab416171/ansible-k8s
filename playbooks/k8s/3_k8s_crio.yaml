@@ -1,0 +1,61 @@
+- name: "install container runtime cri-o"
+  hosts: 'k8s'
+  become: true
+  tasks:
+    - name: add cri-o repo key
+      tags:
+        - kubernetes
+        - crio
+      apt_key:
+        url: https://pkgs.k8s.io/addons:/cri-o:/stable:/v1.30/deb/Release.key
+        state: present
+        keyring: /etc/apt/keyrings/cri-o-apt-keyring.gpg
+    - name: add cri-o ubuntu repo
+      tags:
+        - kubernetes
+        - crio
+      apt_repository:
+        repo: >
+          deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg]
+          https://pkgs.k8s.io/addons:/cri-o:/stable:/v1.30/deb/ /
+        state: present
+        filename: cri-o
+      register: debian_repo
+      when: ansible_facts['distribution'] == 'Debian'
+    - name: create cri-o config dir
+      tags:
+        - kubernetes
+        - crio
+      ansible.builtin.file:
+        path: /etc/crio
+        state: directory
+        owner: root
+        group: root
+        mode: '755'
+    - name: install cri-o config file
+      tags:
+        - kubernetes
+        - crio
+      ansible.builtin.copy:
+        dest: /etc/crio/crio.conf
+        src: ../../templates/crio.conf
+        owner: root
+        group: root
+        mode: '644'
+    - name: install cri-o
+      tags:
+        - kubernetes
+        - crio
+      ansible.builtin.apt:
+        name:
+          - cri-o
+        state: present
+        install_recommends: false
+    - name: autostart cri-o
+      tags:
+        - crio
+        - kubernetes
+      ansible.builtin.systemd_service:
+        name: crio
+        enabled: true
+        state: started

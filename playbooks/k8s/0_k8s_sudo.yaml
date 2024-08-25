@@ -1,0 +1,18 @@
+- hosts: 'k8s'
+  become: true
+  become_method: su
+  tasks:
+    - name: Install sudo
+      ansible.builtin.apt:
+        name: sudo
+        state: latest
+        update_cache: yes
+        install_recommends: yes
+    - name: Allow bob to sudo
+      community.general.sudoers:
+        name: bob-sudo
+        state: present
+        user: bob
+        runas: root
+        commands: ALL
+        nopassword: false

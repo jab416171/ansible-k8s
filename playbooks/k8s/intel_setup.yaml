@@ -1,0 +1,40 @@
+# https://github.com/UntouchedWagons/k3s-intel
+- name: "gpu server setup - intel driver"
+  hosts: 'k8s_gpu'
+  become: true
+  tasks:
+    - name: "Comment out main repo"
+      replace:
+        path: /etc/apt/sources.list
+        regexp: '^deb http://deb.debian.org/debian/ bookworm '
+        replace: '# deb http://deb.debian.org/debian/ bookworm '
+    - name: "Comment out security repo"
+      replace:
+        path: /etc/apt/sources.list
+        regexp: '^deb http://security.debian.org/debian-security'
+        replace: '# deb http://security.debian.org/debian-security'
+    - name: "Comment out updates repo"
+      replace:
+        path: /etc/apt/sources.list
+        regexp: '^deb http://deb.debian.org/debian/ bookworm-updates'
+        replace: '# deb http://deb.debian.org/debian/ bookworm-updates'
+    - name: enable repo bookworm
+      apt_repository:
+        repo: deb http://deb.debian.org/debian/ bookworm main contrib non-free non-free-firmware
+        state: present
+    - name: enable repo bookworm-security
+      apt_repository:
+        repo: deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+        state: present
+    - name: enable repo bookworm-updates
+      apt_repository:
+        repo: deb http://deb.debian.org/debian/ bookworm-updates main contrib non-free non-free-firmware
+        state: present
+    - name: install intel driver
+      tags:
+        - intel
+      ansible.builtin.apt:
+        name:
+          - intel-media-va-driver-non-free
+        state: present
+        install_recommends: false

@@ -1,0 +1,66 @@
+- name: "install haproxy and keepalived and configs"
+  hosts: 'k8s_control'
+  become: true
+  tasks:
+    - name: make haproxy filder
+      file:
+        path: "/etc/haproxy"
+        state: directory
+    - name: copy haproxy conf
+      tags:
+        - kubernetes
+      copy:
+        src: ../../templates/haproxy.cfg
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: 0644
+    - name: copy haproxy yaml
+      tags:
+        - kubernetes
+      copy:
+        src: ../../templates/haproxy.yaml
+        dest: /etc/kubernetes/manifests/haproxy.yaml
+        owner: root
+        group: root
+        mode: 0644
+    - name: make keepalived filder
+      file:
+        path: "/etc/keepalived"
+        state: directory
+    - name: copy keepalived conf
+      tags:
+        - kubernetes
+      copy:
+        src: ../../templates/keepalived.conf
+        dest: /etc/keepalived/keepalived.conf
+        owner: root
+        group: root
+        mode: 0644
+    - name: copy keepalived script
+      tags:
+        - kubernetes
+      copy:
+        src: ../../templates/check_apiserver.sh
+        dest: /etc/keepalived/check_apiserver.sh
+        owner: root
+        group: root
+        mode: 0755
+    - name: copy keepalived yaml
+      tags:
+        - kubernetes
+      copy:
+        src: ../../templates/keepalived.yaml
+        dest: /etc/kubernetes/manifests/keepalived.yaml
+        owner: root
+        group: root
+        mode: 0644
+    - name: copy cluster init yaml
+      tags:
+        - kubernetes
+      copy:
+        src: ../../templates/kube-init-config.yaml
+        dest: /etc/kubernetes/kube-init-config.yaml
+        owner: root
+        group: root
+        mode: 0644

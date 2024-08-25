@@ -1,0 +1,15 @@
+- name: "install packages needed for k8s install"
+  hosts: 'k8s'
+  become: true
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        name:
+          - sudo
+          - vim
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gpg
+          - nfs-common
+          - htop

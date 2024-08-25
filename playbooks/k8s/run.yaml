@@ -1,0 +1,10 @@
+- import_playbook: 0_k8s_sudo.yaml
+- import_playbook: 1_k8s_pkgs.yaml
+- import_playbook: 2_k8s_pre.yaml
+- import_playbook: 3_k8s_crio.yaml
+- import_playbook: 4_k8s_tools.yaml
+- import_playbook: 5_k8s_pull.yaml
+- import_playbook: 6_k8s_kube_configs.yaml
+# - import_playbook: gpu_setup.yaml
+# - import_playbook: tpu_setup.yaml
+# - import_playbook: intel_setup.yaml

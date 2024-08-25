@@ -1,0 +1,57 @@
+- name: "prep vm for k8s install"
+  hosts: 'k8s'
+  become: true
+  tasks:
+    - name: Disable SWAP since kubernetes can't work with swap enabled (1/3)
+      shell: |
+        swapoff -a
+    - name: Disable SWAP in fstab since kubernetes can't work with swap enabled (2/3)
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+        replace: '# \1'
+    - name: Disable SWAP in resume file since kubernetes can't work with swap enabled (3/3)
+      replace:
+        path: /etc/initramfs-tools/conf.d/resume
+        regexp: '^RESUME=.*?swap.*$'
+        replace: ''
+    - name: load overlay kernel module
+      tags:
+        - kubernetes
+        - kernel
+      community.general.modprobe:
+        name: overlay
+        persistent: present
+        state: present
+    - name: load br_netfilter kernel module
+      tags:
+        - kubernetes
+        - kernel
+      community.general.modprobe:
+        name: br_netfilter
+        persistent: present
+        state: present
+    - name: enable ipv4 netfilter on bridge interfaces
+      tags:
+        - kubernetes
+        - kernel
+      ansible.posix.sysctl:
+        name: net.bridge.bridge-nf-call-iptables
+        value: 1
+        state: present
+    - name: enable ipv6 netfilter on bridge interfaces
+      tags:
+        - kubernetes
+        - kernel
+      ansible.posix.sysctl:
+        name: net.bridge.bridge-nf-call-ip6tables
+        value: 1
+        state: present
+    - name: enable ipv4 forwarding
+      tags:
+        - kubernetes
+        - kernel
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: 1
+        state: present

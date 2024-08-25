@@ -1,0 +1,60 @@
+- name: "install k8s tools"
+  hosts: 'k8s'
+  become: true
+  tasks:
+    - name: add k8s repo key
+      tags:
+        - kubernetes
+        - crio
+      apt_key:
+        url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
+        state: present
+        keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    - name: add k8s debian repo
+      tags:
+        - kubernetes
+        - crio
+      apt_repository:
+        repo: >
+          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg]
+          https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /
+        state: present
+        filename: kubernetes
+      register: debian_repo
+      when: ansible_facts['distribution'] == 'Debian'
+    - name: install kubernetes tools
+      tags:
+        - kubernetes
+      ansible.builtin.apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        install_recommends: false
+    - name: pin kubelet version
+      tags:
+        - kubernetes
+      dpkg_selections:
+        name: kubelet
+        selection: hold
+    - name: pin kubeadm version
+      tags:
+        - kubernetes
+      dpkg_selections:
+        name: kubeadm
+        selection: hold
+    - name: pin kubectl version
+      tags:
+        - kubernetes
+      dpkg_selections:
+        name: kubectl
+        selection: hold
+    - name: autostart kubelet
+      tags:
+        - kubelet
+        - kubernetes
+      ansible.builtin.systemd_service:
+        name: kubelet
+        enabled: true
+        state: started

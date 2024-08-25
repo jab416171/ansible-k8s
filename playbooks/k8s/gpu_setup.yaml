@@ -1,0 +1,83 @@
+# https://github.com/NVIDIA/k8s-device-plugin
+# https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+- name: "gpu server setup - nvidia driver"
+  hosts: 'k8s_gpu'
+  become: true
+  tasks:
+    - name: "Comment out main repo"
+      replace:
+        path: /etc/apt/sources.list
+        regexp: '^deb http://deb.debian.org/debian/ bookworm '
+        replace: '# deb http://deb.debian.org/debian/ bookworm '
+    - name: "Comment out security repo"
+      replace:
+        path: /etc/apt/sources.list
+        regexp: '^deb http://security.debian.org/debian-security'
+        replace: '# deb http://security.debian.org/debian-security'
+    - name: "Comment out updates repo"
+      replace:
+        path: /etc/apt/sources.list
+        regexp: '^deb http://deb.debian.org/debian/ bookworm-updates'
+        replace: '# deb http://deb.debian.org/debian/ bookworm-updates'
+    - name: enable repo bookworm
+      apt_repository:
+        repo: deb http://deb.debian.org/debian/ bookworm main contrib non-free non-free-firmware
+        state: present
+    - name: enable repo bookworm-security
+      apt_repository:
+        repo: deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+        state: present
+    - name: enable repo bookworm-updates
+      apt_repository:
+        repo: deb http://deb.debian.org/debian/ bookworm-updates main contrib non-free non-free-firmware
+        state: present
+    - name: Install nvidia driver
+      ansible.builtin.apt:
+        name:
+          - nvidia-driver
+          - firmware-misc-nonfree
+    - name: Add conmon link for crio
+      file:
+        src: "/usr/libexec/crio/conmon"
+        dest: "/usr/bin/conmon"
+        state: link
+    - name: Add crun link for crio
+      file:
+        src: "/usr/libexec/crio/crun"
+        dest: "/usr/bin/crun"
+        state: link
+    - name: add nvidia toolkit repo key
+      tags:
+        - nvidia
+      apt_key:
+        url: https://nvidia.github.io/libnvidia-container/gpgkey
+        state: present
+        keyring: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    - name: add nvidia toolkit repo
+      tags:
+        - nvidia
+      apt_repository:
+        repo: >
+          deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg]
+          https://nvidia.github.io/libnvidia-container/stable/deb/$(ARCH) /
+        state: present
+        filename: cri-o
+      register: nvidia_repo
+      when: ansible_facts['distribution'] == 'Debian'
+    - name: install nvidia container toolkit
+      tags:
+        - nvidia
+      ansible.builtin.apt:
+        name:
+          - nvidia-container-toolkit
+        state: present
+        install_recommends: false
+    - name: configure crio
+      register: crio_updated
+      shell: |
+        nvidia-ctk runtime configure --runtime=crio --set-as-default --config=/etc/crio/crio.conf.d/99-nvidia.conf
+    - name: restart crio
+      systemd_service:
+        state: restarted
+        name: crio
+      when: crio_updated
